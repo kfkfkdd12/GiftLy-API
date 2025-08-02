@@ -1,77 +1,294 @@
-# Giftly API Documentation
+# GiftLy API
 
-Добро пожаловать в документацию по Giftly API — сервису для отправки виртуальных подарков через stars-rocket.com.
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![API Status](https://img.shields.io/badge/API-Status-Active-brightgreen.svg)](https://stars-rocket.com/api/v1/giftly/buyGift)
 
-## Описание API
+**GiftLy API** - это RESTful API для отправки цифровых подарков пользователям Telegram. API позволяет легко интегрировать функциональность отправки подарков в ваши приложения и боты.
 
-Giftly API позволяет отправлять виртуальные подарки пользователям по их ID, передавая необходимые параметры в формате JSON на защищённый эндпоинт.  
-Для работы с API требуется авторизация с помощью токена, который можно получить, зарегистрировавшись у Telegram-бота @giftLyServiceBot.
+## 🌟 Возможности
 
-## Как отправить подарок
+- ✅ Отправка цифровых подарков пользователям
+- ✅ Кастомизация сообщений перед подарком
+- ✅ Простая интеграция с Python приложениями
+- ✅ Асинхронная работа с использованием aiohttp
+- ✅ Подробная обработка ошибок
+- ✅ Безопасная аутентификация через токены
 
-### HTTP запрос
+## 📋 Требования
 
-POST https://stars-rocket.com/api/v1/giftly/buyGift
+- Python 3.7+
+- aiohttp
+- logging (встроенный модуль)
 
-### Заголовки (Headers)
+## 🚀 Установка
 
-{
-  "Content-Type": "application/json",
-  "Accept": "application/json"
-}
+```bash
+pip install aiohttp
+```
 
-### Тело запроса (JSON)
+## 🔑 Получение токена
 
-Параметры:
-- recipient (string, обязательный): ID пользователя, которому отправляется подарок  
-- gift_id (string, обязательный): ID подарка  
-- text (string, необязательный): сообщение к подарку (по умолчанию "Привет, я отдаю тебе выигрыш с бот!")  
-- token (string, обязательный): API токен для доступа  
+Для использования API необходимо получить токен доступа:
 
-## Пример подарков (ID)
+1. Найдите бота [@giftLyServiceBot](https://t.me/giftLyServiceBot) в Telegram
+2. Зарегистрируйтесь и получите ваш уникальный токен
+3. Используйте токен в ваших запросах к API
 
-15 🧸 — 5170233102089322756  
-15 💝 — 5170145012310081615  
-25 🌹 — 5168103777563050263  
-25 🎁 — 5170250947678437525  
-50 🍾 — 6028601630662853006  
-50 🚀 — 5170564780938756245  
-50 💐 — 5170314324215857265  
-50 🎂 — 5170144170496491616  
-100 🏆 — 5168043875654172773  
-100 💍 — 5170690322832818290  
-100 💎 — 5170521118301225164  
+## 📖 Использование
 
-## Пример использования на Python
+### Базовый пример
 
 ```python
 import aiohttp
+import logging
 import asyncio
+
+async def send_gift(user_id, gift_id, text: str = "Привет, я отдаю тебе выигрыш с бот!"):
+    """
+    Отправляет подарок пользователю через GiftLy API
+    
+    Args:
+        user_id (str): ID пользователя Telegram
+        gift_id (str): ID подарка
+        text (str): Сообщение перед подарком
+    
+    Returns:
+        tuple: (success: bool, error_message: str or None)
+    """
+    # Обязательные заголовки для API
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
+    
+    # Данные для отправки
+    data = {
+        'recipient': str(user_id),
+        'gift_id': str(gift_id),
+        'text': str(text),
+        'token': 'YOUR_API_TOKEN_HERE'  # Замените на ваш токен
+    }
+    
+    # Отправка запроса к API
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            'https://stars-rocket.com/api/v1/giftly/buyGift',
+            headers=headers,
+            json=data
+        ) as response:
+            response_data = await response.json()
+            
+            if response.status != 201:
+                error_message = response_data.get('message', 'Неизвестная ошибка')
+                logging.error(f'Ошибка при отправке подарка для пользователя {user_id}: {response_data}')
+                return False, error_message
+            else:
+                logging.info(f'Подарок успешно отправлен пользователю {user_id}')
+                return True, None
+
+# Пример использования
+async def main():
+    # Отправка подарка
+    success, error = await send_gift(
+        user_id="123456789",
+        gift_id="gift_001",
+        text="🎉 Поздравляем с победой!"
+    )
+    
+    if success:
+        print("✅ Подарок отправлен успешно!")
+    else:
+        print(f"❌ Ошибка: {error}")
+
+# Запуск
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Пример с конфигурацией
+
+```python
+import aiohttp
+import logging
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+@dataclass
+class GiftLyConfig:
+    """Конфигурация для GiftLy API"""
+    api_token: str
+    base_url: str = "https://stars-rocket.com/api/v1/giftly"
+    
+    @property
+    def headers(self) -> dict:
+        return {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+
+class GiftLyAPI:
+    """Класс для работы с GiftLy API"""
+    
+    def __init__(self, config: GiftLyConfig):
+        self.config = config
+    
+    async def send_gift(
+        self,
+        user_id: str,
+        gift_id: str,
+        text: str = "Привет, я отдаю тебе выигрыш с бот!"
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Отправляет подарок пользователю
+        
+        Args:
+            user_id: ID пользователя Telegram
+            gift_id: ID подарка
+            text: Сообщение перед подарком
+            
+        Returns:
+            Tuple[bool, Optional[str]]: (успех, сообщение об ошибке)
+        """
+        data = {
+            'recipient': str(user_id),
+            'gift_id': str(gift_id),
+            'text': str(text),
+            'token': self.config.api_token
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.config.base_url}/buyGift",
+                headers=self.config.headers,
+                json=data
+            ) as response:
+                response_data = await response.json()
+                
+                if response.status != 201:
+                    error_message = response_data.get('message', 'Неизвестная ошибка')
+                    logging.error(f'Ошибка API: {response_data}')
+                    return False, error_message
+                
+                return True, None
+
+# Использование
+async def example():
+    config = GiftLyConfig(api_token="YOUR_API_TOKEN_HERE")
+    api = GiftLyAPI(config)
+    
+    success, error = await api.send_gift(
+        user_id="123456789",
+        gift_id="gift_001",
+        text="🎁 Специальный подарок для вас!"
+    )
+    
+    if success:
+        print("✅ Подарок отправлен!")
+    else:
+        print(f"❌ Ошибка: {error}")
+```
+
+## 📡 API Endpoints
+
+### POST /api/v1/giftly/buyGift
+
+Отправляет подарок пользователю.
+
+**Заголовки:**
+```
+Content-Type: application/json
+Accept: application/json
+```
+
+**Тело запроса:**
+```json
+{
+    "recipient": "string",     // ID пользователя Telegram
+    "gift_id": "string",      // ID подарка
+    "text": "string",         // Сообщение перед подарком
+    "token": "string"         // Ваш API токен
+}
+```
+
+**Ответы:**
+
+- **201 Created** - Подарок успешно отправлен
+- **400 Bad Request** - Неверные параметры запроса
+- **401 Unauthorized** - Неверный токен
+- **404 Not Found** - Подарок не найден
+- **500 Internal Server Error** - Внутренняя ошибка сервера
+
+## 🔧 Обработка ошибок
+
+```python
+async def handle_gift_sending(user_id: str, gift_id: str):
+    """Пример обработки ошибок при отправке подарка"""
+    try:
+        success, error = await send_gift(user_id, gift_id)
+        
+        if success:
+            print(f"✅ Подарок отправлен пользователю {user_id}")
+        else:
+            print(f"❌ Ошибка отправки: {error}")
+            
+    except aiohttp.ClientError as e:
+        print(f"❌ Ошибка сети: {e}")
+    except Exception as e:
+        print(f"❌ Неожиданная ошибка: {e}")
+```
+
+## 📝 Логирование
+
+```python
 import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-async def send_gift(user_id: str, gift_id: str, token: str, text: str = "Привет, я отдаю тебе выигрыш с бот!") -> bool:
-    url = "https://stars-rocket.com/api/v1/giftly/buyGift"
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-    payload = {
-        "recipient": user_id,
-        "gift_id": gift_id,
-        "text": text,
-        "token": token
-    }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, json=payload) as response:
-            if response.status == 201:
-                logger.info(f"Подарок успешно отправлен пользователю {user_id}")
-                return True
-            else:
-                error = await response.json()
-                logger.error(f"Ошибка при отправке подарка пользователю {user_id}: {error.get('message', 'Неизвестная ошибка')}")
-                return False
+# В функции send_gift уже есть логирование
+```
 
-# asyncio.run(send_gift("1234567890", "5170145012310081615", "ВАШ_ТОКЕН"))
+## 🛡️ Безопасность
+
+- Все запросы должны содержать валидный токен
+- Токен должен быть получен через официального бота @giftLyServiceBot
+- Не передавайте токен в открытом виде в коде
+- Используйте переменные окружения для хранения токенов
+
+### Рекомендуемый способ хранения токена
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# В .env файле:
+# GIFTLY_API_TOKEN=your_token_here
+
+api_token = os.getenv('GIFTLY_API_TOKEN')
+```
+
+## 🤝 Поддержка
+
+Если у вас возникли вопросы или проблемы:
+
+- 📧 Свяжитесь с поддержкой через [@giftLyServiceBot](https://t.me/giftLyServiceBot)
+- 📖 Изучите документацию API
+- 🐛 Сообщите о багах через бота
+
+## 📄 Лицензия
+
+Этот проект распространяется под лицензией MIT. См. файл [LICENSE](LICENSE) для получения дополнительной информации.
+
+## ⭐ Поддержка проекта
+
+Если этот API оказался полезным для вас, поставьте звездочку на GitHub!
+
+---
+
+**GiftLy API** - Делаем отправку подарков простой и удобной! 🎁 

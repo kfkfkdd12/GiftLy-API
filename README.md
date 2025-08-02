@@ -79,13 +79,13 @@ async def send_gift(user_id, gift_id, text: str = "Привет, я отдаю �
         ) as response:
             response_data = await response.json()
             
-            if response.status != 201:
+            if response.status == 201:
+                logging.info(f'Подарок успешно отправлен пользователю {user_id}')
+                return True, None
+            else:
                 error_message = response_data.get('message', 'Неизвестная ошибка')
                 logging.error(f'Ошибка при отправке подарка для пользователя {user_id}: {response_data}')
                 return False, error_message
-            else:
-                logging.info(f'Подарок успешно отправлен пользователю {user_id}')
-                return True, None
 
 # Пример использования
 async def main():
@@ -104,89 +104,6 @@ async def main():
 # Запуск
 if __name__ == "__main__":
     asyncio.run(main())
-```
-
-### Пример с конфигурацией
-
-```python
-import aiohttp
-import logging
-from dataclasses import dataclass
-from typing import Optional, Tuple
-
-@dataclass
-class GiftLyConfig:
-    """Конфигурация для GiftLy API"""
-    api_token: str
-    base_url: str = "https://stars-rocket.com/api/v1/giftly"
-    
-    @property
-    def headers(self) -> dict:
-        return {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        }
-
-class GiftLyAPI:
-    """Класс для работы с GiftLy API"""
-    
-    def __init__(self, config: GiftLyConfig):
-        self.config = config
-    
-    async def send_gift(
-        self,
-        user_id: str,
-        gift_id: str,
-        text: str = "Привет, я отдаю тебе выигрыш с бот!"
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Отправляет подарок пользователю
-        
-        Args:
-            user_id: ID пользователя Telegram
-            gift_id: ID подарка
-            text: Сообщение перед подарком
-            
-        Returns:
-            Tuple[bool, Optional[str]]: (успех, сообщение об ошибке)
-        """
-        data = {
-            'recipient': str(user_id),
-            'gift_id': str(gift_id),
-            'text': str(text),
-            'token': self.config.api_token
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.config.base_url}/buyGift",
-                headers=self.config.headers,
-                json=data
-            ) as response:
-                response_data = await response.json()
-                
-                if response.status != 201:
-                    error_message = response_data.get('message', 'Неизвестная ошибка')
-                    logging.error(f'Ошибка API: {response_data}')
-                    return False, error_message
-                
-                return True, None
-
-# Использование
-async def example():
-    config = GiftLyConfig(api_token="YOUR_API_TOKEN_HERE")
-    api = GiftLyAPI(config)
-    
-    success, error = await api.send_gift(
-        user_id="123456789",
-        gift_id="gift_001",
-        text="🎁 Специальный подарок для вас!"
-    )
-    
-    if success:
-        print("✅ Подарок отправлен!")
-    else:
-        print(f"❌ Ошибка: {error}")
 ```
 
 ## 📡 API Endpoints
@@ -214,7 +131,7 @@ Accept: application/json
 **Ответы:**
 
 - **201 Created** - Подарок успешно отправлен
-- **400 Bad Request** - Неверные параметры запроса
+- **400 Bad Request** - Неверные параметры запроса (возвращает текст ошибки)
 - **401 Unauthorized** - Неверный токен
 - **404 Not Found** - Подарок не найден
 - **500 Internal Server Error** - Внутренняя ошибка сервера

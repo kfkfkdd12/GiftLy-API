@@ -24,7 +24,7 @@ POST https://stars-rocket.com/api/v1/giftly/buyGift
 
 | Поле | Тип | Обязательное | Описание |
 |------|-----|--------------|----------|
-| `recipient` | string | ✅ | Username получателя подарка (без @) |
+| `recipient` | string | ✅ | User_id получателя подарка (без @) |
 | `gift_id` | string | ✅ | ID подарка для покупки |
 | `token` | string | ✅ | Токен аутентификации |
 | `text` | string | ❌ | Текст сообщения с подарком (опционально) |
@@ -32,7 +32,7 @@ POST https://stars-rocket.com/api/v1/giftly/buyGift
 ### Пример запроса
 ```json
 {
-  "recipient": "username",
+  "recipient": "user_id",
   "gift_id": "gift_123",
   "token": "your_auth_token",
   "text": "Поздравляю!"
@@ -272,7 +272,7 @@ print(data)
 - Покупка выполняется синхронно
 
 ### Для getQueueItemStatus:
-- Требует ID подарка из ответа buyGift
+- Требует ID операции из ответа buyGift
 - Токен должен соответствовать токену, использованному при создании подарка
 - Показывает актуальный статус обработки подарка
 - Включает информацию о количестве попыток и времени в очереди
